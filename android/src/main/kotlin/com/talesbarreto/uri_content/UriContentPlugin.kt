@@ -292,7 +292,7 @@ class UriContentPlugin : FlutterPlugin, MethodCallHandler, UriContentPlatformApi
                 val result = withContext(Dispatchers.IO) {
                     val fd = parcelFileDescriptor.fileDescriptor
                     val buffer = ByteArray(length.toInt())
-                    val bytesRead = android.system.Os.pread(fd, buffer, 0, length, start)
+                    val bytesRead = android.system.Os.pread(fd, buffer, 0, length.toInt(), start)
                     if (bytesRead <= 0) {
                         null
                     } else if (bytesRead < length) {
