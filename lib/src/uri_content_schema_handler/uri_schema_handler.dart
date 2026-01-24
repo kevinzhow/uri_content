@@ -17,6 +17,13 @@ abstract interface class UriSchemaHandler {
     Uri uri,
     UriSchemaHandlerParams params,
   );
+
+  Future<Uint8List> getContentRange(
+    Uri uri,
+    int start,
+    int length,
+    UriSchemaHandlerParams params,
+  );
 }
 
 class UriSchemaHandlerParams {

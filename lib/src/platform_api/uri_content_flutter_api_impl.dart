@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:uri_content/src/platform_api/uri_content_native_api.dart';
 
 class UriContentApi {
@@ -26,5 +27,9 @@ class UriContentApi {
 
   Future<void> registerRequest(String url, int requestId, int bufferSize) {
     return _api.registerRequest(url, requestId, bufferSize);
+  }
+
+  Future<Uint8List?> getContentRange(String url, int start, int length) {
+    return _api.getContentRange(url, start, length);
   }
 }

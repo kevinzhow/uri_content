@@ -32,4 +32,21 @@ class FileUriHandler implements UriSchemaHandler {
   Future<int?> getContentLength(Uri uri, UriSchemaHandlerParams params) {
     return File.fromUri(uri).length();
   }
+
+  @override
+  Future<Uint8List> getContentRange(
+    Uri uri,
+    int start,
+    int length,
+    UriSchemaHandlerParams params,
+  ) async {
+    final file = File.fromUri(uri);
+    final raf = await file.open();
+    try {
+      await raf.setPosition(start);
+      return await raf.read(length);
+    } finally {
+      await raf.close();
+    }
+  }
 }

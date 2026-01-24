@@ -35,4 +35,18 @@ class FallbackUriHandler implements UriSchemaHandler {
   Future<int?> getContentLength(Uri uri, UriSchemaHandlerParams params) {
     return SynchronousFuture(uri.data?.contentAsBytes().length);
   }
+
+  @override
+  Future<Uint8List> getContentRange(
+    Uri uri,
+    int start,
+    int length,
+    UriSchemaHandlerParams params,
+  ) async {
+    final bytes = uri.data?.contentAsBytes();
+    if (bytes != null) {
+      return bytes.sublist(start, start + length);
+    }
+    throw UnsupportedSchemeError(uri.scheme);
+  }
 }

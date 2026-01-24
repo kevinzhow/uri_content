@@ -37,4 +37,20 @@ class DataUriHandler implements UriSchemaHandler {
     final data = uri.data;
     return SynchronousFuture(data?.contentAsBytes().length);
   }
+
+  @override
+  Future<Uint8List> getContentRange(
+    Uri uri,
+    int start,
+    int length,
+    UriSchemaHandlerParams params,
+  ) async {
+    final data = uri.data;
+    if (data != null) {
+      final bytes = data.contentAsBytes();
+      return bytes.sublist(start, start + length);
+    } else {
+      throw UriContentError.dataSchemeWithNoData;
+    }
+  }
 }

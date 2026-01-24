@@ -91,4 +91,22 @@ class AndroidContentUriHandler implements UriSchemaHandler {
   Future<int?> getContentLength(Uri uri, UriSchemaHandlerParams params) {
     return uriContentApi.getContentLength(uriSerializer(uri));
   }
+
+  @override
+  Future<Uint8List> getContentRange(
+    Uri uri,
+    int start,
+    int length,
+    UriSchemaHandlerParams params,
+  ) async {
+    final result = await uriContentApi.getContentRange(
+      uriSerializer(uri),
+      start,
+      length,
+    );
+    if (result == null) {
+      throw UriContentError("Could not get content range for $uri");
+    }
+    return result;
+  }
 }

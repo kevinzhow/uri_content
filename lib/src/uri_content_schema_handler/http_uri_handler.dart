@@ -71,4 +71,29 @@ class HttpUriHandler implements UriSchemaHandler {
       yield* Stream.error(e, s);
     }
   }
+
+  @override
+  Future<Uint8List> getContentRange(
+    Uri uri,
+    int start,
+    int length,
+    UriSchemaHandlerParams params,
+  ) async {
+    final request = await httpClient.getUrl(uri);
+    _addHeadersToRequest(request, params.httpHeaders);
+    request.headers.set('Range', 'bytes=$start-${start + length - 1}');
+    final response = await request.close();
+    if (response.statusCode != HttpStatus.partialContent &&
+        response.statusCode != HttpStatus.ok) {
+      throw HttpException(
+        "Unexpected status code ${response.statusCode}",
+        uri: uri,
+      );
+    }
+    final bytes = await response.fold<List<int>>(
+      [],
+      (previous, element) => previous..addAll(element),
+    );
+    return Uint8List.fromList(bytes);
+  }
 }

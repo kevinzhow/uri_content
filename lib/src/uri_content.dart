@@ -169,4 +169,23 @@ class UriContent {
       return null;
     }
   }
+
+  /// [fromRange] returns a specific range of bytes from the specified URI.
+  /// Supported schemes: data, file, http, https, Android content
+  ///
+  /// [start] is the starting byte index (inclusive).
+  /// [length] is the number of bytes to retrieve.
+  /// [httpHeaders] see https://api.flutter.dev/flutter/dart-io/HttpHeaders/add.html
+  Future<Uint8List> fromRange(
+    Uri uri,
+    int start,
+    int length, {
+    Map<String, Object> httpHeaders = const {},
+  }) {
+    final handler = _getUriSchemaHandler(uri);
+    final params = UriSchemaHandlerParams(
+      httpHeaders: httpHeaders,
+    );
+    return handler.getContentRange(uri, start, length, params);
+  }
 }

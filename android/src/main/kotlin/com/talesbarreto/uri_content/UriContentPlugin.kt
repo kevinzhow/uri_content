@@ -268,4 +268,44 @@ class UriContentPlugin : FlutterPlugin, MethodCallHandler, UriContentPlatformApi
             }
         }
     }
+
+    override fun getContentRange(
+        url: String,
+        start: Long,
+        length: Long,
+        callback: (Result<ByteArray?>) -> Unit
+    ) {
+        launch {
+            val contentResolver = contentResolver
+            if (contentResolver == null) {
+                callback(Result.failure(Exception("ContentResolver is null")))
+                return@launch
+            }
+            try {
+                val uri = url.toUri()
+                val parcelFileDescriptor = contentResolver.openFileDescriptor(uri, "r")
+                if (parcelFileDescriptor == null) {
+                    callback(Result.success(null))
+                    return@launch
+                }
+
+                val result = withContext(Dispatchers.IO) {
+                    val fd = parcelFileDescriptor.fileDescriptor
+                    val buffer = ByteArray(length.toInt())
+                    val bytesRead = android.system.Os.pread(fd, buffer, 0, length, start)
+                    if (bytesRead <= 0) {
+                        null
+                    } else if (bytesRead < length) {
+                        buffer.sliceArray(0 until bytesRead.toInt())
+                    } else {
+                        buffer
+                    }
+                }
+                parcelFileDescriptor.close()
+                callback(Result.success(result))
+            } catch (e: Exception) {
+                callback(Result.failure(e))
+            }
+        }
+    }
 }

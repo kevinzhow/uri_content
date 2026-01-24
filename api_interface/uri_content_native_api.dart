@@ -32,6 +32,9 @@ abstract class UriContentPlatformApi {
 
   @async
   bool exists(String url);
+
+  @async
+  Uint8List? getContentRange(String url, int start, int length);
 }
 
 class UriContentChunkResult {
