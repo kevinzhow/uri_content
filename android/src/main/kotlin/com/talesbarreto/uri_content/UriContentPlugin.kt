@@ -1,6 +1,9 @@
 package com.talesbarreto.uri_content
 
 import android.content.ContentResolver
+import android.system.ErrnoException
+import android.system.Os
+import android.system.OsConstants
 import androidx.core.net.toUri
 import com.talesbarreto.uri_content.extension.tryUnlock
 import com.talesbarreto.uri_content.model.UriContentActiveRequests
@@ -283,29 +286,57 @@ class UriContentPlugin : FlutterPlugin, MethodCallHandler, UriContentPlatformApi
             }
             try {
                 val uri = url.toUri()
-                val parcelFileDescriptor = contentResolver.openFileDescriptor(uri, "r")
-                if (parcelFileDescriptor == null) {
-                    callback(Result.success(null))
-                    return@launch
-                }
-
                 val result = withContext(Dispatchers.IO) {
-                    val fd = parcelFileDescriptor.fileDescriptor
-                    val buffer = ByteArray(length.toInt())
-                    val bytesRead = android.system.Os.pread(fd, buffer, 0, length.toInt(), start)
-                    if (bytesRead <= 0) {
-                        null
-                    } else if (bytesRead < length) {
-                        buffer.sliceArray(0 until bytesRead.toInt())
-                    } else {
-                        buffer
+                    if (start < 0) {
+                        throw IllegalArgumentException("start must be non-negative: $start")
+                    }
+                    if (length < 0) {
+                        throw IllegalArgumentException("length must be non-negative: $length")
+                    }
+                    if (length > Int.MAX_VALUE.toLong()) {
+                        throw IllegalArgumentException("length is too large: $length")
+                    }
+                    if (length == 0L) {
+                        return@withContext ByteArray(0)
+                    }
+
+                    val fromFileDescriptor = contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
+                        val fd = descriptor.fileDescriptor
+                        val buffer = ByteArray(length.toInt())
+                        try {
+                            val bytesRead = Os.pread(fd, buffer, 0, length.toInt(), start)
+                            when {
+                                bytesRead <= 0 -> null
+                                bytesRead < length.toInt() -> buffer.copyOf(bytesRead)
+                                else -> buffer
+                            }
+                        } catch (e: Exception) {
+                            if (!shouldFallbackToInputStreamRead(e)) {
+                                throw e
+                            }
+                            null
+                        }
+                    }
+
+                    if (fromFileDescriptor != null) {
+                        return@withContext fromFileDescriptor
+                    }
+
+                    contentResolver.openInputStream(uri)?.use { inputStream ->
+                        RangeReader.readFromInputStream(inputStream, start, length)
                     }
                 }
-                parcelFileDescriptor.close()
                 callback(Result.success(result))
             } catch (e: Exception) {
                 callback(Result.failure(e))
             }
         }
+    }
+
+    private fun shouldFallbackToInputStreamRead(error: Exception): Boolean {
+        return error is ErrnoException &&
+                (error.errno == OsConstants.ESPIPE ||
+                        error.errno == OsConstants.EBADF ||
+                        error.errno == OsConstants.EINVAL)
     }
 }
