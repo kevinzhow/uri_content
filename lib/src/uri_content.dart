@@ -181,11 +181,25 @@ class UriContent {
     int start,
     int length, {
     Map<String, Object> httpHeaders = const {},
-  }) {
+  }) async {
+    if (start < 0) {
+      throw RangeError.value(start, 'start', 'must be non-negative');
+    }
+    if (length < 0) {
+      throw RangeError.value(length, 'length', 'must be non-negative');
+    }
+    if (length == 0) {
+      return Uint8List(0);
+    }
+
     final handler = _getUriSchemaHandler(uri);
     final params = UriSchemaHandlerParams(
       httpHeaders: httpHeaders,
     );
-    return handler.getContentRange(uri, start, length, params);
+    final result = await handler.getContentRange(uri, start, length, params);
+    if (result.length <= length) {
+      return result;
+    }
+    return Uint8List.sublistView(result, 0, length);
   }
 }
